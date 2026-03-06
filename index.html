@@ -3,135 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Messenger</title>
+    <title>Flash Messenger Pro</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        :root { --main-color: #0088cc; --bg: #e6ebee; }
-        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --tg-blue: #248bcf; --tg-bg: #8ba1b5; --msg-in: #ffffff; --msg-out: #efffde; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: var(--tg-bg); display: flex; flex-direction: column; height: 100vh; }
         
-        /* Интерфейс */
-        header { background: var(--main-color); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        
-        /* Сообщения */
-        .msg { max-width: 75%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.4; position: relative; }
-        .sent { align-self: flex-end; background: #efffde; color: #000; border-bottom-right-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .received { align-self: flex-start; background: white; color: #000; border-bottom-left-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        
-        /* Ввод */
-        .input-bar { background: white; padding: 10px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #ddd; }
-        input { flex: 1; border: none; background: #f1f1f1; padding: 12px; border-radius: 20px; outline: none; }
-        .btn { background: var(--main-color); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        /* Шапка */
+        header { background: var(--tg-blue); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; }
+        .status-dot { width: 10px; height: 10px; background: #4cd964; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
-        /* Видео */
-        #video-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; flex-direction: column; z-index: 1000; }
-        video { width: 100%; height: 50%; object-fit: cover; background: #222; }
-        #my-id-display { font-size: 10px; color: #eee; padding: 5px; background: rgba(0,0,0,0.5); position: fixed; top: 60px; width: 100%; text-align: center; }
-        .close-call { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #ff3b30; width: 60px; height: 60px; border-radius: 50%; color: white; font-size: 24px; border: none; }
+        /* История чата */
+        #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+        
+        .bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 15px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word; }
+        .out { align-self: flex-end; background: var(--msg-out); border-bottom-right-radius: 2px; }
+        .in { align-self: flex-start; background: var(--msg-in); border-bottom-left-radius: 2px; }
+        .time { font-size: 10px; color: #888; margin-top: 4px; text-align: right; }
+
+        /* Поле ввода */
+        .input-container { background: white; padding: 10px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #ccc; }
+        input { flex: 1; border: 1px solid #ddd; padding: 10px 15px; border-radius: 20px; outline: none; font-size: 16px; }
+        .action-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--tg-blue); padding: 0 5px; }
+
+        /* Окно видеозвонка */
+        #call-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 1000; }
+        #remote-video { width: 100%; height: 100%; object-fit: cover; }
+        #local-video { width: 30%; height: 20%; position: absolute; bottom: 100px; right: 20px; border-radius: 8px; border: 2px solid white; object-fit: cover; }
+        .call-ui { position: absolute; bottom: 40px; width: 100%; display: flex; justify-content: center; gap: 30px; }
+        .hangup-btn { background: #ff3b30; color: white; border: none; width: 65px; height: 65px; border-radius: 50%; font-size: 30px; }
     </style>
 </head>
 <body>
 
 <header>
-    <span>MESSENGER PRO</span>
-    <button class="btn" onclick="startCallPrompt()" style="background:none; font-size: 20px;">📞</button>
+    <div><span class="status-dot"></span> <strong>Messenger</strong></div>
+    <div id="peer-id-badge" style="font-size: 11px; opacity: 0.8;">Подключение...</div>
+    <button onclick="makeCall()" style="background:none; border:none; color:white; font-size:20px;">📞</button>
 </header>
 
-<div id="my-id-display">Загрузка вашего ID...</div>
+<div id="chat-box"></div>
 
-<div id="chat-window"></div>
-
-<div id="video-grid">
+<div id="call-screen">
     <video id="remote-video" autoplay playsinline></video>
-    <video id="local-video" autoplay playsinline muted style="height: 25%; width: 30%; position: absolute; bottom: 100px; right: 10px; border: 2px solid white;"></video>
-    <button class="close-call" onclick="location.reload()">❌</button>
+    <video id="local-video" autoplay playsinline muted></video>
+    <div class="call-ui">
+        <button class="hangup-btn" onclick="endCall()">❌</button>
+    </div>
 </div>
 
-<div class="input-bar">
-    <input type="text" id="msgInput" placeholder="Введите сообщение...">
-    <button class="btn" onclick="sendMsg()">➤</button>
+<div class="input-container">
+    <button class="action-btn" onclick="connectToFriend()">➕</button>
+    <input type="text" id="messageInput" placeholder="Сообщение" autocomplete="off">
+    <button class="action-btn" onclick="send()">➤</button>
 </div>
 
 <script>
-    // 1. Инициализация связи через PeerJS (это заменяет сервер)
-    const peer = new Peer(); 
-    let conn;
-    let myStream;
+    const peer = new Peer();
+    let currentConn = null;
+    let myStream = null;
 
-    peer.on('open', (id) => {
-        document.getElementById('my-id-display').innerText = "Ваш ID для друга: " + id;
-        console.log('My ID: ' + id);
+    // 1. При запуске: получаем свой ID и загружаем историю
+    peer.on('open', id => {
+        document.getElementById('peer-id-badge').innerText = "Ваш ID: " + id;
+        loadHistory();
     });
 
-    // 2. Логика получения сообщений и звонков
-    peer.on('connection', (connection) => {
-        conn = connection;
-        setupChat();
+    // 2. Обработка входящего текста
+    peer.on('connection', conn => {
+        currentConn = conn;
+        setupConnHandlers();
     });
 
-    peer.on('call', async (call) => {
-        if (confirm("Входящий видеозвонок! Ответить?")) {
-            const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-            myStream = stream;
-            document.getElementById('video-grid').style.display = 'flex';
-            document.getElementById('local-video').srcObject = stream;
-            call.answer(stream);
-            call.on('stream', (remoteStream) => {
-                document.getElementById('remote-video').srcObject = remoteStream;
+    // 3. Обработка входящего видеозвонка
+    peer.on('call', async call => {
+        if(confirm("Входящий звонок! Ответить?")) {
+            myStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+            document.getElementById('call-screen').style.display = 'block';
+            document.getElementById('local-video').srcObject = myStream;
+            call.answer(myStream);
+            call.on('stream', stream => {
+                document.getElementById('remote-video').srcObject = stream;
             });
         }
     });
 
-    // 3. Функции управления
-    function sendMsg() {
-        const text = document.getElementById('msgInput').value;
-        if (!text) return;
-        
-        // Отображаем у себя
-        renderMsg(text, 'sent');
-        document.getElementById('msgInput').value = "";
-
-        // Отправляем другу (нужно знать его ID)
-        if (!conn) {
-            const friendId = prompt("Введите ID друга, чтобы начать чат:");
-            conn = peer.connect(friendId);
-            conn.on('open', () => {
-                conn.send(text);
-                setupChat();
-            });
-        } else {
-            conn.send(text);
-        }
-    }
-
-    function setupChat() {
-        conn.on('data', (data) => {
-            renderMsg(data, 'received');
+    function setupConnHandlers() {
+        currentConn.on('data', data => {
+            addMessage(data, 'in');
+            saveMessage(data, 'in');
         });
     }
 
-    function renderMsg(text, type) {
+    function connectToFriend() {
+        const friendId = prompt("Введите ID собеседника:");
+        if(friendId) {
+            currentConn = peer.connect(friendId);
+            setupConnHandlers();
+            alert("Соединение установлено!");
+        }
+    }
+
+    function send() {
+        const text = document.getElementById('messageInput').value;
+        if(!text || !currentConn) {
+            if(!currentConn) alert("Сначала подключитесь к другу через '+'");
+            return;
+        }
+        currentConn.send(text);
+        addMessage(text, 'out');
+        saveMessage(text, 'out');
+        document.getElementById('messageInput').value = "";
+    }
+
+    async function makeCall() {
+        const friendId = currentConn ? currentConn.peer : prompt("Введите ID для звонка:");
+        if(!friendId) return;
+
+        myStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+        document.getElementById('call-screen').style.display = 'block';
+        document.getElementById('local-video').srcObject = myStream;
+
+        const call = peer.call(friendId, myStream);
+        call.on('stream', stream => {
+            document.getElementById('remote-video').srcObject = stream;
+        });
+    }
+
+    function addMessage(text, type) {
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const div = document.createElement('div');
-        div.className = `msg ${type}`;
-        div.innerText = text;
-        document.getElementById('chat-window').appendChild(div);
-        document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+        div.className = `bubble ${type}`;
+        div.innerHTML = `${text} <div class="time">${time}</div>`;
+        document.getElementById('chat-box').appendChild(div);
+        document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
     }
 
-    async function startCallPrompt() {
-        const friendId = prompt("Кому звоним? Введите ID друга:");
-        if (!friendId) return;
-
-        const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-        myStream = stream;
-        document.getElementById('video-grid').style.display = 'flex';
-        document.getElementById('local-video').srcObject = stream;
-
-        const call = peer.call(friendId, stream);
-        call.on('stream', (remoteStream) => {
-            document.getElementById('remote-video').srcObject = remoteStream;
-        });
+    function saveMessage(text, type) {
+        let history = JSON.parse(localStorage.getItem('chat_history') || '[]');
+        history.push({text, type, time: new Date()});
+        localStorage.setItem('chat_history', JSON.stringify(history));
     }
+
+    function loadHistory() {
+        let history = JSON.parse(localStorage.getItem('chat_history') || '[]');
+        history.forEach(m => addMessage(m.text, m.type));
+    }
+
+    function endCall() {
+        location.reload(); // Простой способ сбросить WebRTC сессию
+    }
+
+    // Отправка по Enter
+    document.getElementById('messageInput').addEventListener('keypress', e => {
+        if(e.key === 'Enter') send();
+    });
 </script>
 
 </body>
